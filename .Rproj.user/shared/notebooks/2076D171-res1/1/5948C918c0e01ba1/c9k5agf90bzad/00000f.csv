@@ -1,0 +1,8 @@
+"0","df <- dat2 %>% "
+"0","  mutate(Subject_Type = paste0(Subject_Type,'_', Subject_Group)) %>%"
+"0","  select(-Subject_Group) %>% rbind(dat)"
+"0",""
+"0","df2 <- dat2 %>% select(-Subject_Group) %>% rbind(dat)"
+"0","# remove Chinese string in df"
+"0","df <- df %>% mutate(Subject_Type = gsub('Chinese ','',Subject_Type))"
+"0","df2 <- df2 %>% mutate(Subject_Type = gsub('Chinese ','',Subject_Type))"

@@ -1,0 +1,71 @@
+library(ggplot2)
+library(readxl)
+df<-read_xlsx("Copy of 环形箱线图数据集合并.xlsx")
+mycol<-c("#5CB85C","#337AB7","#F0AD4E", "#D9534F", "#5BC0DE", "#FFD700", 'red')
+library(ggpubr)
+library(cowplot)
+library(dplyr)
+library(rstatix)
+
+base_data <- data.frame(
+  group = c('Ningxia', 'April', 'July', 'October'),
+  start = c(0.5, 4.5, 8.5, 12.5),
+  end = c(3.5, 7.5, 11.5, 15.5)
+)
+
+df$g <- factor(interaction(df$cat, df$group), 
+                  levels = c('Ningxia.April', 'Ningxia.July', 'Ningxia.October', 'Ningxia.NA', 
+                             'April.YRIA', 'April.CAZ', 'April.SMA', 'April.NA',
+                             'July.YRIA', 'July.CAZ', 'July.SMA', 'July.NA',
+                             'October.YRIA', 'October.CAZ', 'October.SMA', 'October.NA'))
+
+
+stat.test1 <- df %>% drop_na() %>% 
+  compare_means(data = ., wqi ~ g, method = 't.test', p.adjust.method = 'bonferroni', paired = F) 
+stat.test1 <- stat.test1 %>% filter(sapply(strsplit(as.character(stat.test1$group1), '\\.'), '[[', 1) == 
+                       sapply(strsplit(as.character(stat.test1$group2), '\\.'), '[[', 1)) %>% slice(4:12)
+
+stat.test2 <- df %>% drop_na() %>%
+  filter(cat == 'Ningxia') %>%
+  compare_means(data = ., wqi ~ g, method = 't.test', p.adjust.method = 'bonferroni', paired = T)
+
+stat.test <- rbind(stat.test1, stat.test2)
+
+
+stat.test$y.position <- rep(c(105, 125, 115), 4)
+
+df %>% 
+  ggviolin(x = "g", y = "wqi", fill = "group", width = 0.8, alpha = 0.5) +
+  geom_segment(data = stat.test, aes(x = group1, xend = group2, y = y.position, yend = y.position), linewidth = 0.5) +
+  annotate('text', x = stat.test$group1, y = stat.test$y.position + 5, label = stat.test$p.signif, size = 4, 
+           hjust = runif(12) + 0.5, vjust = runif(12)+ 0.5,
+           angle = c(rep(135, 3), rep(45, 3), rep(-45, 3), rep(-135, 3)),
+           family = 'Times') +
+  stat_summary(fun=mean, geom="point", shape=16, size=3, color="black") +
+  stat_summary(fun=mean, geom="point", shape=16, size=2, color="white")+
+  geom_point(data = df %>% drop_na, aes(x = g, y = wqi, color = group), 
+             shape = 16, size = 1, alpha = 1, position = position_jitter(0.2), inherit.aes = T) +
+  #stat_summary(fun=mean, geom="text", size=4, mapping = aes(label = round(..y.., 1)), vjust = -0.5, hjust = -0.5)+
+  stat_summary(fun.y=mean, geom="line", size=1, color="black", mapping = aes(group = cat))+
+  theme_minimal() +
+  theme(text = element_text(family = "Times")) +
+  coord_polar() +
+  annotate('text', x = 0, y = c(20, 40, 60, 80, 100, 120), 
+           label = c('', '40', '60', '80', '100', '120'), color = 'black', 
+           size=4, fontface="plain",family = "serif") +
+  scale_x_discrete(labels = c('April', 'July', 'October', '', 
+                              'YRIA', 'CAZ', 'SMA', '',
+                              'YRIA', 'CAZ', 'SMA', '',
+                              'YRIA', 'CAZ', 'SMA', '')) +
+  ylim(-20,130) +
+  geom_text(data = base_data, aes(x = (start + end) / 2, y = 10, label = group), size = 3, fontface = "bold", family = 'Times') +
+  geom_segment(data = base_data, aes(x = start, xend = end, y = 30, yend = 30), size = 0.5) +
+  #manual color
+  scale_fill_manual(values = mycol) +
+  scale_color_manual(values = mycol)
+
+saveRDS(p, "~/Downloads/p.rds")
+
+
+  
+readRDS("~/Downloads/p.rds")

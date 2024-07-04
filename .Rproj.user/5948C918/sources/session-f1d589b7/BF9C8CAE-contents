@@ -1,0 +1,148 @@
+setwd("C:\\tcga\\mrna表达文件")#设置工作目录
+
+#install.packages("rjson")
+
+library("rjson")
+
+#---整理json文件---
+
+json <- jsonlite::fromJSON("metadata.cart.2023-06-14.json")#用jsonlite包中的fromJSON函数读取json文件
+
+View(json)#文件名为file_name列的变量，样本名在associated_entities变量下的entity_submitter_id变量中。
+
+class(json)#类型为数据框
+
+class(json$associated_entities)#类型为列表
+
+file_name <- json$file_name#取出json数据框中的file_name列作为文件名
+
+file_name[1]#查看文件名格式
+
+sample_name <- sapply(json$associated_entities,function(x){x[,1]})#取出json数据框中associated_entities列表中的第一列值entity_submitter_id作为样本名
+
+sample_name[1]#查看样本名格式
+
+sample_file_name <- data.frame(file_name,sample_name)#建立file_name和sample_name的数据框
+
+gdc_file <- list.files('gdc_download_20230614_040627.701020',pattern = '*.tsv',recursive = T)
+
+#用list.files函数将gdc文件夹下的所有tsv结尾的文件名存入到列表中
+
+gdc_file[1]#查看gdc下文件名格式
+
+gdc_file_name <- strsplit(gdc_file,split = '/')#用strsplit函数将gdc_file字符串分割
+
+class(gdc_file_name)#分割后的gdc_file_name变成了列表
+
+gdc_file_name <- sapply(gdc_file_name, function(x){x[2]})#用sapply配合function循环取其中的样本名
+
+#上句可换为gdc_file_name <- sapply(gdc_file_name, "[",2)
+
+gdc_file_name[1]#查看gdc_file_name的格式
+
+matrix = data.frame(matrix(nrow=60660,ncol = 0))#通过矩阵快速创建一个60660行，0列的数据框
+
+#使用for循环取出多个文件中的数据并填充矩阵
+
+for(i in 1:length(gdc_file_name)){
+
+  path = paste0('gdc_download_20230614_040627.701020//',gdc_file[i])#用paste0函数连接字符，给出文件的路径全名。
+
+  data <- read.delim(path,fill = TRUE,header = F,row.names = 1)#读入每个路径下的样本数据，并以第一列作为行名
+
+  colnames(data) <- data[2,]#以第二行作为列名
+
+  data <- data[-c(1:6),]#去除第1至6行
+
+  data <- data[6]#取出unstranded列（counts列为3，tpm为6，fpkm为7）     
+
+  colnames(data) <- sample_file_name$sample_name[which(sample_file_name$file_name==gdc_file_name[i])]
+
+  #根据文件名匹配，将样本名作为列名
+
+  matrix <- cbind(matrix,data)
+
+}
+
+matrix[1,1:5]
+
+write.csv(matrix,"tpm_matrix.csv",row.names = T)
+
+#进行gene ID转换，将Ensembl ID转换为Gene Symbol
+
+path = paste0("gdc_download_20230614_040627.701020//",gdc_file[1])
+
+path
+
+data <- as.matrix(read.delim(path,header = F,row.names = 1))
+
+gene_name <- data[-c(1:6),1]
+
+matrix0 <- cbind(gene_name,matrix)
+
+#去除gene_name列重复的基因，保留每个基因最大表达量结果
+
+matrix0 <- aggregate(.~gene_name,data = matrix0,max)
+
+#将gene_name列设为行名
+
+row.names(matrix0) <- matrix0[,1]
+
+matrix0 <- matrix0[,-1]
+
+write.csv(matrix0,"tpm_matrix0.csv")
+
+sample <- colnames(matrix0)
+
+normal <- c()
+
+tumor <- c()
+
+for (i in 1:length(sample)){
+
+  if((substring(colnames(matrix0)[i],14,15)>10)){    #14、15位置大于10的为normal样本
+
+    normal <- append(normal,sample[i])
+
+  } else {
+
+    tumor <- append(tumor,sample[i])
+
+  }
+
+}
+
+tumor_matrix <- matrix0[,tumor]
+
+normal_matrix <- matrix0[,normal]
+
+setwd("C:\\tcga\\mrna表达文件")
+
+#install.packages("rjson")
+
+library("rjson")
+
+json <- jsonlite::fromJSON("metadata.cart.2023-06-14.json")
+
+View(json)
+
+entity_submitter_id <- sapply(json$associated_entities,function(x){x[,1]})
+
+case_id <- sapply(json$associated_entities,function(x){x[,3]})
+
+sample_case <- t(rbind(entity_submitter_id,case_id))
+
+clinical <- read.delim('clinical.cart.2023-06-17\\clinical.tsv',header = T)
+
+clinical <- as.data.frame(clinical[duplicated(clinical$case_id),])
+
+clinical_matrix <- merge(sample_case,clinical,by="case_id",all.x=T)
+
+clinical_matrix <- clinical_matrix[,-1]
+
+write.csv(clinical_matrix,'clinical.csv',row.names = TRUE)
+
+作者：emmmmmmmmmmmmm
+链接：https://www.jianshu.com/p/f92320c04765
+来源：简书
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。

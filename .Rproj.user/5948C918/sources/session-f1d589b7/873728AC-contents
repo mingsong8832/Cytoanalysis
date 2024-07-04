@@ -1,0 +1,30 @@
+library(ggplot2)
+
+df<-read_xlsx("Copy of 环形箱线图数据集合并.xlsx") %>% drop_na() %>% filter(cat == 'Ningxia')
+mycol<-c("#5CB85C","#337AB7","#F0AD4E")
+library(ggpubr)
+library(dplyr)
+df %>% 
+  group_by(group) %>% 
+  summarise(mean_v=mean(wqi)) -> df1
+
+p_test <- compare_means(wqi ~ group, data = df, method = "t.test",p.adjust.method = 'bonferroni', paired = F)
+p_test$y.position = 46:48 + seq(0, 4, 2)
+
+ggboxplot(df,x="group",y="wqi",color="group",palette = mycol,legend="none",fill = "group",lwd = 1.2,
+             xlab = FALSE,
+             ylab = "WQI",size = 0.8, width = 0.8, alpha=0.7,
+             add = "jitter",add.params = list(size=4,jitter=0.1,alpha=0.75),outlier.shape = NA) +
+  stat_pvalue_manual(p_test, label = 'p.signif', size = 10,family = "serif",
+                     bracket.size = 1.1, bracket.nudge.y = 45, tip.length = 0.02) +
+  theme(axis.text.x = element_text(size = 20,angle = 0,family = "serif",face = "plain",vjust = 0.5,hjust = 0.5))+
+  theme(axis.text.y = element_text(size = 20,family = "serif",face = "plain"))+
+  theme(axis.title.y = element_text(size = 20,family = "serif",face = "plain"))+
+  theme(axis.ticks = element_line(linewidth = 1.0))+
+  theme(axis.line = element_line(linewidth = 0.8))+
+  geom_line(data=df1,aes(x=group,y=mean_v,group=1),
+            color="black",size=2,linetype=2,alpha=0.55)+
+  geom_point(data=df1,aes(x=group,y=mean_v),color="white",size=4.0)+
+  labs(title = "(c) October")+
+  theme(title = element_text(size = 20,family = "serif",face = "plain"))
+a

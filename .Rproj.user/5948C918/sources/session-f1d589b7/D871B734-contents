@@ -1,0 +1,78 @@
+library(tidyverse)
+
+setwd('~/Downloads/Corsi data 20240419/')
+
+# 提取文件名
+before_file_name <- list.files(path = './前测/', full.names = F, recursive = F)
+after_file_name <- list.files(path = './后测/', full.names = F, recursive = F)
+
+#提取编号, 例如AA581648
+before_file_info <- data.frame(ID = str_extract(before_file_name, '^.{1,8}'), name = before_file_name)
+after_file_info <- data.frame(ID = str_extract(after_file_name, '^.{1,8}'), name = after_file_name)
+
+#提取文件大小
+before_file_size <- file.info(paste0('./前测/', before_file_name))$size
+after_file_size <- file.info(paste0('./后测/', after_file_name))$size
+
+#合并
+before_file_info <- cbind(before_file_info, size = before_file_size)
+after_file_info <- cbind(after_file_info, size = after_file_size)
+
+
+#提取第一次记录
+before_file_info_first <- before_file_info %>%
+  filter(size > 5) %>%
+  group_by(ID) %>%
+  arrange(name) %>%
+  slice(1)
+
+after_file_info_first <- after_file_info %>%
+  #排除空表格
+  filter(size > 5) %>%
+  group_by(ID) %>%
+  arrange(name) %>%
+  slice(1)
+
+#提取blk次数
+before_file_info_first$count <-
+sapply(before_file_info_first$name, function(x) {
+  sum(read.csv(paste0('./前测/', x))$m_exp.clicked_name %>%
+        rev() %>%
+        .[1] %>%
+        strsplit('[\\"_]') %>% .[[1]] == 'blk')})
+
+after_file_info_first$count <-
+sapply(after_file_info_first$name, function(x) {
+  sum(read.csv(paste0('./后测/', x))$m_exp.clicked_name %>%
+        rev() %>%
+        .[1] %>%
+        strsplit('[\\"_]') %>% .[[1]] == 'blk')})
+
+#合并前后,只保留ID和count
+file_info <- merge(
+  before_file_info_first[, c('ID', 'count')],
+  after_file_info_first[, c('ID', 'count')],
+  by = 'ID', suffixes = c('_before', '_after'), all = T)
+
+#pivot longer
+file_info_long <- file_info %>%
+  pivot_longer(cols = c(count_before, count_after), names_to = 'time', values_to = 'count')
+
+#统计na
+file_info_long %>%
+  group_by(time) %>%
+  summarise(na = sum(is.na(count)))
+
+#均值和标准差
+file_info_long %>%
+  group_by(time) %>%
+  summarise(mean = mean(count, na.rm = T), sd = sd(count, na.rm = T))
+
+#wilcox.test
+wilcox.test(count ~ time, data = file_info_long)
+
+#boxplot
+file_info_long %>%
+  ggplot(aes(x = time, y = count, fill = time)) +
+  geom_boxplot() +
+  theme_bw()

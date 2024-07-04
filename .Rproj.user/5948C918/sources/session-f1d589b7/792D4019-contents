@@ -1,0 +1,43 @@
+library(tidyverse)
+library(readxl)
+library(cowplot)
+
+df1 <- read_xlsx('~/Downloads/MCF-7 colony migration in 24.xlsx', sheet = 1) %>%
+  drop_na()
+df2 <- read_xlsx('~/Downloads/MCF-7 colony migration in 24.xlsx', sheet = 2) %>%
+  drop_na()
+df3 <- read_xlsx('~/Downloads/MCF-7 colony migration in 24.xlsx', sheet = 3) %>%
+  drop_na()
+
+p1 <- ggplot(df1, aes(x=x, y=y, color = paste0(df1$group, '_', df1$cell))) +
+  geom_line() +
+  theme_bw() +
+  xlim(-200, 200) +
+  ylim(-200, 200) +
+  labs(title = 'siControl') +
+  theme(legend.position = 'none',
+        plot.title = element_text(hjust = 0.5))
+
+
+p2 <- ggplot(df2, aes(x=x, y=y, color = paste0(df2$group, '_', df2$cell))) +
+  geom_line() +
+  theme_bw() +
+  xlim(-200, 200) +
+  ylim(-200, 200) +
+  labs(title = 'siSOS#1') +
+  theme(legend.position = 'none',
+        plot.title = element_text(hjust = 0.5))
+
+p3 <- ggplot(df3, aes(x=x, y=y, color = paste0(df3$group, '_', df3$cell))) +
+  geom_line() +
+  theme_bw() +
+  xlim(-200, 200) +
+  ylim(-200, 200) +
+  labs(title = 'siSOS#2') +
+  theme(legend.position = 'none',
+        plot.title = element_text(hjust = 0.5))
+
+plot_grid(p1, p2, p3, ncol = 2)
+```
+
+```{r}

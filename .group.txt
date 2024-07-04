@@ -1,0 +1,11 @@
+sample	group
+sample1	A
+sample2	A
+sample3	A
+sample4	A
+sample5	A
+sample6	B
+sample7	B
+sample8	B
+sample9	B
+sample10	B

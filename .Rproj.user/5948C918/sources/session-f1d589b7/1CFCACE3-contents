@@ -1,0 +1,11 @@
+library(tidyverse)
+
+setwd('~/Downloads/20240523/')
+#get file name 
+files <- list.files(pattern = "*.csv")
+
+df <- lapply(files, function(t) read.csv(t, header = F) %>% 
+         `colnames<-`(c('Loc', 'value')) %>%
+         mutate(sample = t)) %>% 
+  reduce(rbind) %>%
+  pivot_wider(names_from = Loc, values_from = value) 

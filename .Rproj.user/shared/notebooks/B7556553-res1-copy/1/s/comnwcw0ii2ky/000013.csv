@@ -1,0 +1,2 @@
+"0","dat <- read_xlsx('~/Downloads/量词数据处理-实验一 Clear Version 4.xlsx', sheet = 10)"
+"0","dat2 <- read_xlsx('~/Downloads/量词数据处理-实验一 Clear Version 4.xlsx', sheet = 11)"

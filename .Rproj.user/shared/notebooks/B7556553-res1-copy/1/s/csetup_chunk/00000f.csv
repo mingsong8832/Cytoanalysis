@@ -1,0 +1,33 @@
+"0","knitr::opts_chunk$set(echo = TRUE)"
+"0","library(tidyverse)"
+"0","library(lmerTest)"
+"2","Loading required package: lme4
+"
+"2","Loading required package: Matrix
+"
+"2","
+Attaching package: ‘Matrix’
+
+"
+"2","The following objects are masked from ‘package:tidyr’:
+
+    expand, pack, unpack
+
+"
+"2","
+Attaching package: ‘lmerTest’
+
+"
+"2","The following object is masked from ‘package:lme4’:
+
+    lmer
+
+"
+"2","The following object is masked from ‘package:stats’:
+
+    step
+
+"
+"0","library(emmeans)"
+"0","library(ggeffects)"
+"0","library(readxl)"

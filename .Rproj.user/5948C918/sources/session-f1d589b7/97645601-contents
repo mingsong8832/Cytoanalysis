@@ -1,0 +1,48 @@
+library(tidyverse)
+setwd("~/Downloads/")
+dat <- read.csv("opgd result.csv", check.names = F)
+lv <- dat$X
+
+dat2 <- dat %>% 
+  pivot_longer(cols = -c('X', 'Q90'), values_to = 'value', names_to = 'group') %>%
+  mutate(X = factor(X, levels = lv)) %>%
+  group_by(X) %>%
+  arrange(X, value) %>%
+  ungroup() %>%
+  mutate(id = row_number()) %>%
+  mutate(angle = -10 - 360 * (id -0.5) / 68 ) %>%
+  # mutate(angle = ifelse(angle < -90, angle - 10, angle)) %>%
+  mutate(hjust = ifelse(id > 25, 1.1, -0.1))
+
+dat2 %>%   
+  ggplot(aes(x = X, y = value, 
+             fill = X,
+             group = reorder(interaction(group, X), value)
+  )
+  ) +
+  geom_bar(stat = 'identity', position = 'dodge', color = 'white') +
+  geom_text(aes(label = group, y = 0.7), color = 'black',size = 4,family = "serif", angle = dat2$angle+90 ,
+            position = position_dodge(width = 0.9),vjust = 0.25,hjust = 0.2) +
+  theme_bw() +
+  labs(title = NULL, x = 'Group', y = 'Value', fill = 'X') +
+  coord_polar(theta = 'x', start = 0) +
+  ylim(-0.2, 1) +
+  theme(#legend.position = 'none',
+    text = element_text(family = "serif",size = 23,color = "black",face = "plain"),
+    axis.text.x = element_blank(),
+    axis.title = element_blank(),
+    #panel.grid = element_blank(),
+    plot.margin = unit(rep(-1,4), "cm") 
+  ) +
+  labs(fill = 'group', color = '') +
+  annotate('text', x = 0.3, y = c(-0.1,0, 0.1, 0.2, 0.3, 0.4,0.5,0.6,0.7,0.8), 
+           label = c('q','0', '0.1', '0.2', '0.3', '0.4','0.5','0.6','0.7','0.8'), color = 'black', 
+           size=4, fontface="plain",family = "serif") +
+  geom_errorbar(aes(ymax = Q90, ymin = Q90), 
+                size=0.5,width = 0.9, linetype = "longdash", color = "#006db6") +
+  geom_line(aes(x = 1, y = 0, group = 1, color = '90% quantile'), size = 1.2, linetype = "dashed") +
+  geom_text(aes(x = X, y = Q90 + 0.12, label = round(Q90,3)), family = "serif",size = 5,color = "#006db6",fontface = "plain",
+            check_overlap = TRUE,angle = dat2$angle+60 ) +
+  scale_color_manual(values="#006db6")+
+  scale_fill_manual(values = c("#193E8F","#80A6E2","#B5D4E9","#FBDD85","#F46F43","#CF3D3E"))
+

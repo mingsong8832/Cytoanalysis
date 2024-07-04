@@ -1,0 +1,258 @@
+library(tidyverse)
+library(betapart)
+library(ggtern)
+library(plotly)
+setwd("F:\\Papers\\PhD thesis\\fourth paper\\data\\beta diversity\\April 2023y\\species statistics by region\\the whole ningxia district")
+df <- read.csv("~/Downloads/YRIA 2.csv", row.names = 1)
+data.core.s <- betapart.core(df)
+ceram.dist.sor <- beta.pair(data.core.s, index.family="sorensen")
+
+beta <- as.matrix(ceram.dist.sor$beta.sor)
+diag(beta) <- 0
+beta[upper.tri(beta)] <- 0
+beta <- reshape2::melt(beta)
+beta <- subset(beta, value != 0)
+
+turnover <- as.matrix(ceram.dist.sor$beta.sim)
+diag(turnover) <- 0
+turnover[upper.tri(turnover)] <- 0
+turnover <- reshape2::melt(turnover)
+turnover <- subset(turnover, value != 0)
+
+nestedness <- as.matrix(ceram.dist.sor$beta.sne)
+diag(nestedness) <- 0  
+nestedness[upper.tri(nestedness)] <- 0   
+nestedness <- reshape2::melt(nestedness)
+nestedness <- subset(nestedness, value != 0)
+
+dff = merge(beta,turnover,by=c("Var1","Var2"))
+dff = merge(dff,nestedness,by=c("Var1","Var2"))
+colnames(dff) = c("site1","site2","beta","turnover","nestedness")
+dff$site=paste(dff$site1,dff$site2,sep="_")
+dff$beta=as.numeric(dff$beta)
+dff$turnover=as.numeric(dff$turnover)
+dff$nestedness=as.numeric(dff$nestedness)
+
+
+dm=as.data.frame(t(data.frame(mean=colMeans(dff[,3:5]))))
+dm
+options(repr.plot.width=20, repr.plot.height=20)
+ggtern(data=dff,aes(turnover,nestedness, 1-beta))+
+  geom_point(alpha=0.5,color = '#E53528', size=2.5)+
+  geom_point(data=dm,col="blue",size=3.0) +
+  geom_point(data = data.frame(beta = 0.6378206, turnover = 0.6378206, nestedness = 0.01), size = 3.0, color = 'blue') +
+  geom_point(data = data.frame(beta = 0.99, turnover = 0.4928058, nestedness = 1- 0.4928058), size = 3.0, color = 'blue') +
+  geom_point(data = data.frame(beta = 0.1450148, turnover = 0.01, nestedness = 0.1450148), size = 3.0, color = 'blue') +
+  geom_segment(aes(x = 0.4928058, y = 0.1450148, z = 1 - 0.6378206, 
+                   xend = 0.6378206, yend = 0.01, zend = 1 - 0.6378206), color = "blue", size = 1) +
+  geom_segment(aes(x = 0.4928058, y = 0.1450148, z = 1 - 0.6378206, 
+                   xend = 0.4928058, yend = 1- 0.4928058, zend = 1 - 0.99), color = "blue", size = 1) +
+  geom_segment(aes(x = 0.4928058, y = 0.1450148, z = 1 - 0.6378206, 
+                   xend = 0.01, yend = 0.1450148, zend = 1 - 0.1450148), color = "blue", size = 1) +
+  labs(z ="Similarity (1-βsor)",x = "βsim",y = "βsne",
+       title = "(e) The whole Ningxia district",fill = "level")+
+  guides(alpha = "none",position="bottom")+
+  theme_bw() + 
+  theme_showarrows() + 
+  theme(legend.position = "bottom",
+        legend.key = element_rect(fill = NA),
+        tern.axis.arrow = element_line(color = "black",size = 2.0),
+        text=element_text(size=16,  family="serif"),
+        axis.text = element_text(size = 16,family = "serif",face = "plain",colour = "black"),
+        axis.line = element_line(color = "black",linetype = "solid",linewidth = 0.6),
+        panel.grid = element_line(colour = "gray80", linetype = "dashed", linewidth = 0.6),
+        panel.grid.minor = element_line(colour = "grey80", linetype = "dashed", linewidth = 0.6)) +
+  scale_T_continuous(breaks = c(0, 0.1450148, 1), labels = c(0, 0.15, 1)) +
+  scale_L_continuous(breaks = c(0, 0.4928058, 1), labels = c(0, 0.49, 1)) +
+  scale_R_continuous(breaks = c(0, 1 - 0.6378206, 1), labels = c(0, 1 - 0.64, 1)) 
+  
+
+data.multi.sor<-beta.multi(data.core.s, index.family="sorensen")
+data.multi.sor
+
+data_bar <- data.frame(data.multi.sor) %>%
+  select(beta.SIM, beta.SNE) %>%
+  rename(βsim = beta.SIM,
+         βsne = beta.SNE) %>%
+  reshape2::melt() %>%
+  mutate(group = c('(a) YRIA')) 
+
+data_pie <- data.frame(data.multi.sor) %>%
+  select(beta.SIM, beta.SNE) %>%
+  rename(βsim = beta.SIM,
+         βsne = beta.SNE) %>%
+  reshape2::melt() %>%
+  mutate(value = value / sum(value)) %>%
+  ungroup()
+
+pie_chart <- ggplot(data_pie, aes(x = '', y = value, fill = variable)) +
+  geom_bar(stat = "identity", position = "stack", color = "white", size = 1.3) +
+  coord_polar("y", direction = -1, clip = 'off') +
+  scale_fill_manual(values = c("#8DCDD5","#F0A29B")) +
+  theme_void() +
+  theme(legend.position = "none") +
+  labs(x = "", y = "") +
+  geom_text(aes(label = paste0(round(value * 100, 2), "%")), size = 5,family = "serif",colour = "black",
+            position = position_stack(vjust = 0.5)) 
+
+ggplot(data_bar, aes(x = variable, y = value, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge", color = 'black', width = 0.25) +
+  scale_fill_manual(values = c("#8DCDD5","#F0A29B")) +
+  theme_bw() +
+  theme(legend.position = "none",
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text = element_text(family = "serif",size = 20,color = "black"),
+        text = element_text(family = "serif",size = 20,color = "black")) +
+  labs(x = "", y = "Score of each group", fill = "") +
+  annotation_custom(ggplotGrob(pie_chart), xmin = 1.2, xmax = 2.9, ymin = 0.38, ymax = 0.72) +
+  geom_text(aes(label = paste0(round(value, 2))), family = "serif",size = 6,
+            position = position_dodge(width = 1.5), vjust = -0.5) +
+  ylim(0.0,0.9)+
+  facet_wrap(~group, scales = "free", ncol = 1)
+
+# turnover
+p1 <- ggplot(data = dff, aes(x = turnover)) +
+  geom_histogram(bins = 14, fill = "lightblue", color = "black") +
+  labs(title = "Histogram of beta", x = "beta", y = "Frequency") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("red")) +
+  stat_bin(geom = "text", aes(label = scales::percent(..count.. / sum(..count..)), y = ..count..),
+           hjust = - 0.3, color = "black", size = 3, bins = 14, family = 'Times') +
+  coord_flip() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks = element_blank(),
+        text = element_text(family = 'Times')) +
+  ylim(0, 20) +
+  scale_x_continuous(breaks = seq(0, 1, 0.1), limits = c(-0.05, 1)) +
+  labs(title = '') 
+
+p2 <- ggplot(data = dff, aes(x = turnover)) +
+  geom_boxplot(fill = "lightblue", color = "black", width = 0.5) +
+  coord_flip() +
+  xlim(0, 1) +
+  ylim(-0.5, 0.5) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) +
+  labs( x = "")  +
+  theme(plot.margin=margin(l=-0.85,unit="cm")) +
+  scale_x_continuous(breaks = seq(0, 1, 0.1), limits = c(-0.05, 1.05))
+
+cowplot::plot_grid(p1, p2, labels = NULL, ncol = 2, align = "h", 
+                   axis = "tb", rel_widths = c(0.6, 0.3), scale = 1)
+  
+# beta
+p1 <- ggplot(data = dff, aes(x = beta)) +
+  geom_histogram(bins = 14, fill = "lightblue", color = "black") +
+  labs(title = "Histogram of beta", x = "beta", y = "Frequency") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("red")) +
+  stat_bin(geom = "text", aes(label = scales::percent(..count.. / sum(..count..)), y = ..count..),
+           hjust = - 0.3, color = "black", size = 3, bins = 14, family = 'Times') +
+  coord_flip() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks = element_blank(),
+        text = element_text(family = 'Times')) +
+  ylim(0, 35) +
+  scale_x_continuous(breaks = seq(0, 1, 0.1), limits = c(-0.05, 1.05)) +
+  labs(title = '')
+
+p2 <- ggplot(data = dff, aes(x = beta)) +
+  geom_boxplot(fill = "lightblue", color = "black", width = 0.5) +
+  coord_flip() +
+  xlim(0, 1) +
+  ylim(-0.5, 0.5) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) +
+  labs( x = "")  +
+  theme(plot.margin=margin(l=-0.85,unit="cm")) +
+  scale_x_continuous(limits = c(-0.05, 1.05))
+
+cowplot::plot_grid(p1, p2, labels = NULL, ncol = 2, align = "h", 
+                   axis = "tb", rel_widths = c(0.6, 0.3), scale = 1)
+
+# nestedness
+p1 <- ggplot(data = dff, aes(x = nestedness)) +
+  geom_histogram(bins = 14, fill = "lightblue", color = "black") +
+  labs(title = "Histogram of beta", x = "beta", y = "Frequency") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("red")) +
+  stat_bin(geom = "text", aes(label = scales::percent(..count.. / sum(..count..)), y = ..count..),
+           hjust = - 0.3, color = "black", size = 3, bins = 14, family = 'Times') +
+  coord_flip() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks = element_blank(),
+        text = element_text(family = 'Times')) +
+  ylim(0, 55) +
+  scale_x_continuous(breaks = seq(0, 1, 0.1), limits = c(-0.05, 1.05)) +
+  labs(title = '') 
+  
+
+p2 <- ggplot(data = dff, aes(x = nestedness)) +
+  geom_boxplot(fill = "lightblue", color = "black", width = 0.5) +
+  coord_flip() +
+  xlim(0, 1) +
+  ylim(-0.5, 0.5) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) +
+  labs( x = "")  +
+  theme(plot.margin=margin(l=-0.85,unit="cm")) +
+  scale_x_continuous(breaks = seq(0, 1, 0.1), limits = c(-0.05, 1.05))
+
+cowplot::plot_grid(p1, p2, labels = NULL, ncol = 2, align = "h", 
+                   axis = "tb", rel_widths = c(0.6, 0.3), scale = 1)
+
+
+dff %>% select(turnover, beta, nestedness) %>% 
+  melt() %>%
+  ggplot(aes(x = value, fill = variable)) +
+  geom_density(alpha = 0.3) +
+  theme_classic() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        text = element_text(family = 'Times'),
+        plot.title = element_text(hjust = 0.5)) +
+  scale_y_continuous(position = "right") +
+  coord_flip() +
+  scale_fill_manual(values = c("red", "blue", "green")) +
+  labs(title = "Density plot of turnover, beta and nestedness", x = "Value", y = "Density") 
+
+dff %>% select(turnover, beta, nestedness) %>% 
+  melt() %>%
+  mutate(group = cut(value, breaks = seq(0, 1, 0.1))) %>%
+  group_by(variable, group) %>%
+  summarise(n = n(), .groups = 'drop') %>%
+  group_by(variable) %>%
+  mutate(freq = n / sum(n)) %>%
+  ggplot(aes(x = group, y = freq, group = variable, color = variable)) +
+  geom_line() +
+  theme_classic() +
+  theme(panel.grid.major.y = element_line(),
+        panel.grid.minor.x = element_blank(),
+        text = element_text(family = 'Times'),
+        plot.title = element_text(hjust = 0.5)) +
+  scale_y_continuous(position = "right", labels = scales::percent_format()) +
+  coord_flip() +
+  scale_fill_manual(values = c("red", "blue", "green")) +
+  labs(title = "Density plot of turnover, beta and nestedness", x = "Value", y = "Frequency") 
+
+  
+

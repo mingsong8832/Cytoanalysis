@@ -1,0 +1,59 @@
+setwd("~/Downloads/")#设置工作目录
+
+#install.packages("rjson")
+
+library("rjson")
+
+#---整理json文件---
+
+json <- jsonlite::fromJSON("metadata.cart.2024-06-20 (1).json")#用jsonlite包中的fromJSON函数读取json文件
+
+file_name <- json$file_name#取出json数据框中的file_name列作为文件名
+sample_name <- sapply(json$associated_entities,function(x){x[,1]})
+
+sample_file_name <- data.frame(file_name,sample_name)#建立file_name和sample_name的数据框
+
+gdc_file <- list.files('gdc_download_20230614_040627.701020',pattern = '*.tsv',recursive = T)
+gdc_file_full_name <- list.files('gdc_download_20230614_040627.701020',pattern = '*.tsv',recursive = T, full.names = T)
+
+matrix = data.frame(matrix(nrow=60660,ncol = 0))#通过矩阵快速创建一个60660行，0列的数据框
+
+#使用for循环取出多个文件中的数据并填充矩阵
+
+for(i in 1:length(gdc_file_full_name)){
+ data <- read.delim(gdc_file_full_name[i],fill = TRUE,header = F,row.names = 1)#读入每个路径下的样本数据，并以第一列作为行名
+
+ colnames(data) <- data[2,]#以第二行作为列名
+
+ data <- data[-c(1:6),]#去除第1至6行
+
+ data <- data[6]#取出unstranded列（counts列为3，tpm为6，fpkm为7）
+
+ colnames(data) <- sample_file_name$sample_name[which(sample_file_name$file_name == gdc_file[i])]
+
+ #根据文件名匹配，将样本名作为列名
+
+ matrix <- cbind(matrix,data)
+
+}
+
+#进行gene ID转换，将Ensembl ID转换为Gene Symbol
+
+data <- as.matrix(read.delim(gdc_file_full_name[1],header = F,row.names = 1))
+
+gene_name <- data[-c(1:6),1]
+
+matrix0 <- cbind(gene_name,matrix)
+
+#去除gene_name列重复的基因，保留每个基因最大表达量结果
+
+matrix0 <- aggregate(.~gene_name,data = matrix0,max)
+
+#将gene_name列设为行名
+
+row.names(matrix0) <- matrix0[,1]
+
+matrix0 <- matrix0[,-1]
+
+write.csv(matrix0,"tpm_matrix0.csv")
+

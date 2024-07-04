@@ -1,0 +1,38 @@
+Package: CytoAnalysis
+Type: Package
+Title: What the Package Does (Title Case)
+Version: 1.0.0
+Author: Who wrote it
+Maintainer: The package maintainer <yourself@somewhere.net>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports: 
+  pbapply (>= 1.7-2), 
+  kohonen (>= 3.0.12), 
+  reshape2 (>= 1.4.4), 
+  circlize (>= 0.4.16),
+  ggplot2 (>= 3.4.0),
+  vegan (>= 2.6-4),
+  ggpubr (>= 0.6.0),
+  ggsci (>= 3.0.1),
+  patchwork (>= 1.2.0),
+  lattice (>= 0.22-5),
+  permute (>= 0.9-5),
+  caret (>= 6.0-94),
+  rstatix (>= 0.7.0),
+  dplyr (>= 1.1.0),
+  forcats (>= 1.0.0),
+  cowplot (>= 1.1.3),
+  ggh4x (>= 0.2.8),
+  pheatmap (>= 1.0.12),
+  RColorBrewer (>= 1.1-2),
+  linkET,
+  pROC (>= 1.18.5),
+  tibble (>= 3.2.1)
+Remotes: 
+  Hy4m/linkET
+Depends: R (>= 4.0.0)
+RoxygenNote: 7.3.1

@@ -1,0 +1,97 @@
+library(tidyverse)
+library(cowplot)
+library(readxl)
+
+df <- read_xlsx('~/Downloads/beta多样性统计.xlsx')
+order <- rev(paste0(df$group, '.', df$category))
+rects <- data.frame(xstart = c(0, 3.5, 6.5, 9.5), xend = c(3.5, 6.5, 9.5, Inf), 
+                    color = c('Ningxia District', 'April', 'July', 'October'))
+
+df %>%
+  ggplot(aes(x = fct_relevel(interaction(group, category), order), y=βSOR)) +
+  geom_segment(
+    aes(
+    x = fct_relevel(interaction(group, category), order),
+    xend = fct_relevel(interaction(group, category), order), 
+    y = 0,
+    yend = βSOR,
+    color = fct_relevel(group, unique(group))),
+    linewidth = 0.5) +
+  geom_point(size = 3, aes(x = as.numeric(fct_relevel(interaction(group, category), order)), 
+                            color = fct_relevel(group, unique(group)))) +
+  geom_segment(aes(x = as.numeric(fct_relevel(interaction(group, category), order)) + 0.2, 
+                   y = 0,
+                   xend = as.numeric(fct_relevel(interaction(group, category), order)) + 0.2, 
+                   yend = βSIM),
+               linetype = 'dashed', size = 0.5, color = 'gray50') +
+  geom_point( size = 3, aes(x = as.numeric(fct_relevel(interaction(group, category), order)) + 0.2, y = βSIM), color = 'gray50') +
+  geom_text(aes(x = as.numeric(fct_relevel(interaction(group, category), order)) + 0.3, y = βSIM + 0.05, label = βSIM), 
+            size = 3, family = 'Times') +
+  geom_text(aes(x = as.numeric(fct_relevel(interaction(group, category), order)) - 0.1, y = βSOR + 0.05, label = βSOR), 
+            size = 3, family = 'Times') +
+  coord_flip() +
+  # x label on the right
+  theme(axis.text.y = element_text(size = 12, hjust = 0),
+        axis.title.y = element_text(size = 12, hjust = 0.5),
+        axis.title.x = element_text(size = 12, hjust = 0.5)) +
+  scale_y_continuous(trans = 'reverse') +
+  scale_x_discrete(position = 'top', 
+                   labels = rev(df$group)
+                   ) +
+  #clean background
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = 'black'),
+        legend.position = 'none',
+        text = element_text(family = 'Times')) +
+  xlab('') +
+  scale_color_manual(values = c('green', 'yellow', 'purple', 'pink', 'blue', 'red')) +
+  ylim(1.0, 0)
+
+  
+  
+p2 <- df %>%
+  ggplot(aes(x = fct_relevel(interaction(group, category), order), y=βBC)) +
+  geom_segment(
+    aes(
+      x = fct_relevel(interaction(group, category), order),
+      xend = fct_relevel(interaction(group, category), order), 
+      y = 0,
+      yend = βBC,
+      color = fct_relevel(group, unique(group))),
+    linewidth = 0.5) +
+  geom_point(size = 3, aes(x = as.numeric(fct_relevel(interaction(group, category), order)), 
+                           color = fct_relevel(group, unique(group)))) +
+  geom_segment(aes(x = as.numeric(fct_relevel(interaction(group, category), order)) + 0.2, 
+                   y = 0,
+                   xend = as.numeric(fct_relevel(interaction(group, category), order)) + 0.2, 
+                   yend = βBC.BAL,
+                   color = 'gray50'),
+               linetype = 'dashed', size = 0.5) +
+  geom_point( size = 3, aes(x = as.numeric(fct_relevel(interaction(group, category), order)) + 0.2, y = βBC.BAL, color = 'gray50')) +
+  geom_text(aes(x = as.numeric(fct_relevel(interaction(group, category), order)) + 0.1, y = βBC + 0.05, label = βBC), 
+            size = 3, family = 'Times') +
+  geom_text(aes(x = as.numeric(fct_relevel(interaction(group, category), order)) + 0.2, y = βBC.BAL + 0.05, label = βBC.BAL), 
+            size = 3, family = 'Times') +
+  coord_flip() +
+  # x label on the right
+  theme(axis.text.y = element_text(size = 12, hjust = 0),
+        axis.title.y = element_text(size = 12, hjust = 0.5),
+        axis.title.x = element_text(size = 12, hjust = 0.5)) +
+  scale_x_discrete( 
+                   labels = rev(df$group)
+  ) +
+  #clean background
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = 'black'),
+        legend.position = 'left',
+        text = element_text(family = 'Times')) +
+  labs(x='', color='') +
+  scale_color_manual(values = c('green', 'yellow',  'purple', 'pink', 'blue', 'red', 'gray'), 
+                     labels = c('April', 'July', 'October', 'YRIA', 'CAZ', 'SMA', 'NA'))
+
+cowplot::plot_grid(p1, p2, ncol = 2, align = 'v')
+

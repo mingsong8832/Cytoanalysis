@@ -1,0 +1,91 @@
+library(gdm)
+library(tidyverse)
+library(vegan)
+library(readxl)
+
+bio_data <- read.csv('~/Downloads/50个点位/Species.csv')
+geo_data <- read.csv('~/Downloads/50个点位/Geographical latitude and longitude.csv')
+elevation_mx <- read.csv('~/Downloads/50个点位/elevation distance.csv')
+hetero_mx <- read.csv('~/Downloads/50个点位/环境异质性样点对.csv')
+beta_data <- read_xlsx('~/Downloads/50个点位/beta diversity dissimilarity.xlsx')
+
+beta_data <-
+  beta_data %>% 
+  select(site1, site2, nestedness) %>%
+  pivot_wider(names_from = site2, values_from = nestedness) %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames('site1') %>%
+  as.matrix()
+
+beta_data <- beta_data + t(beta_data)
+
+beta_data <-
+  beta_data %>%
+  as.data.frame() %>%
+  rownames_to_column('site')
+
+
+bio_data <- bio_data %>% pivot_longer(-1) %>%
+  `colnames<-`(c('site', 'species', 'abundance')) %>%
+  filter(abundance > 0) %>%
+  mutate(fake = 1) %>%
+  left_join(geo_data, by = c('site' = 'Sampling.point'))
+
+geo_mx <-
+  geo_data %>% 
+  column_to_rownames('Sampling.point') %>% 
+  dist(method = 'euclidian') %>%
+  as.matrix() %>%
+  as.data.frame() %>%
+  rownames_to_column('site') 
+
+elevation_mx <-
+  elevation_mx %>% 
+  pivot_wider(names_from = Var2, values_from = value) %>%
+  replace(is.na(.), 0) %>%
+  column_to_rownames('Var1') %>%
+  rownames_to_column('site') 
+
+hetero_mx <-
+  hetero_mx %>% 
+  pivot_wider(names_from = site2, values_from = value) %>%  
+  replace(is.na(.), 0) %>%
+  column_to_rownames('site1') %>%
+  as.matrix() 
+  
+hetero_mx <- hetero_mx + t(hetero_mx) 
+
+het_mx <- 
+  hetero_mx %>%
+  as.data.frame() %>%
+  rownames_to_column('site')
+
+gdmTab <-
+  formatsitepair(
+    bioData = bio_data,
+    bioFormat = 2,
+    #dist = 'bray',
+    #abundance = TRUE,
+    siteColumn = 'site',
+    XColumn = 'Longitude',
+    YColumn = 'Latitude',
+    sppColumn = 'species',
+    #abundColumn = 'abundance',
+    predData = bio_data %>% select(site, fake, Longitude, Latitude),
+    distPreds = list(geo = geo_mx, het = het_mx, elevation = elevation_mx)
+    )
+
+gdm_fit <- gdm(gdmTab) 
+
+gdm_fit$predictors <- c('fake', 'geom', 'heterogeneity', 'elevation')
+plot(gdm_fit, plot.layout=c(3, 3))
+
+summary(gdm_fit)
+
+gdm.varImp(gdmTab, geo = F, nPerm =200)
+
+plot(gdm_fit)
+
+isples <- gdm_isoplot(gdm_fit, gdmTab, 'geom', 'fake', 'heterogeneity', 'elevation', 'species')
+
+                       

@@ -1,0 +1,26 @@
+{
+    "id": "56C9C3AB",
+    "path": "~/Downloads/CytoAnalysis/R/main.R",
+    "project_path": "R/main.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1718294778682.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "664,8",
+        "scrollLine": "660"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1720053658,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1720053658240,
+    "read_only": false,
+    "read_only_alternatives": []
+}

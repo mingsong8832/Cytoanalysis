@@ -1,0 +1,2 @@
+"0","fit <- lmer(`Reaction Time` ~ Subject_Type * Condition +(1|Subject_No), df)"
+"0","fit2 <- lmer(`Reaction Time` ~ Subject_Type * Condition +(1|Subject_No), df2)"

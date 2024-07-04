@@ -1,0 +1,70 @@
+# load flow-related packages
+libs <- c("ggcyto", "flowWorkspace", "openCyto", "ggrepel", "flowCore", "Biobase", "gridExtra", 'scales', "patchwork", "grid", "png")
+lapply(libs, function(x) require(x, character.only = TRUE, quietly = TRUE))
+library(ggpubr)
+library(ggplot2)
+require(scales)
+require(dplyr)
+require(viridis)
+
+
+# path to the saved FCM data
+rawdata_path <- "/Users/apple/Desktop/ddd"
+
+# set path to fcs files
+print("Listing files...")
+fcs_path <- list.files(rawdata_path, pattern = "fcs$", full.names = TRUE)
+print(fcs_path)  # This will print the list of matched .fcs files
+
+# read fsc files as flowset (flowWorkspace)
+fcs_files <- read.flowSet(files = fcs_path, column.pattern = "\\*|Bits|Drop", invert.pattern = T, alter.names = FALSE)
+
+# Load in the table with the selected features
+bins <- read.csv('/Users/apple/Desktop/ddd/cohonen_information.csv', row.names = 1)
+selected_rows <- c('V20','V102' )
+
+# Rename the columns
+new_colnames <- sapply(colnames(bins), function(x) {
+  if (x == "FSC.PAR") {
+    return(x)
+  } else {
+    return(sub("\\.[^.]+$", "", x))
+  }
+})
+
+bins <- bins[rownames(bins) %in% selected_rows,] %>%
+  as.data.frame() %>%
+  `colnames<-`(new_colnames) %>%
+  mutate_all(~ 10^((4 * .x) / 65000))
+
+dat <- exprs(fcs_files@frames[["Ig_PD120.fcs"]]) %>%
+  as.data.frame() %>%
+  mutate_at(vars(-'classes'), ~ 10^((4 * .x) / 65000)) %>%
+  `colnames<-`(c(new_colnames, 'classes'))
+
+gplots <- function(dat, x, y, v){
+  dat %>%
+    ggplot(aes_string(x = x, y = y)) +
+    geom_hex(bins = 100) +
+    geom_point(data = dat[paste0('V', dat[,"classes"]) %in% selected_rows, ], 
+               aes_string(x=x, y=y),
+               color = "grey20", alpha = 0.3, size =0.5) +
+    scale_fill_viridis(discrete = F, trans = 'log') +
+    scale_x_log10(breaks = c(0, 10, 100, 1000, 10000),
+                  labels = trans_format("log10", scales::math_format(10^.x)),
+                  limits = c(0.9, 11000)) +
+    scale_y_log10(breaks = c(1, 10, 100, 1000, 10000),
+                  labels = trans_format("log10", scales::math_format(10^.x)),
+                  limits = c(0.9, 11000)) +
+    annotate('text', x = bins[, x], y = bins[, y], label = selected_rows, color = 'white',size = 3) +
+    theme_bw() +
+    theme(text = element_text(family = 'Times')) 
+}
+
+g1 <- gplots(dat, 'FSC.PAR', 'SSC')
+g2 <- gplots(dat, 'FSC.PAR', 'Hoechst.Red')
+g3 <- gplots(dat, 'FITC', 'APC')
+g4 <- gplots(dat, 'Pe.TR', 'BV650')
+
+ggarrange(g1, g2, g3, g4, ncol = 2, nrow = 2, common.legend = T)
+  
